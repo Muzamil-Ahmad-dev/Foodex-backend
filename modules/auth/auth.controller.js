@@ -15,12 +15,14 @@ export const register = asyncHandler(async (req, res) => {
   const user = await User.create({ name, email, password, role });
   const token = generateToken(user);
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   // Set JWT in cookie
   res.cookie('token', token, {
     httpOnly: true,
-    sameSite: 'lax', // ✅ localhost friendly
-    secure: process.env.NODE_ENV === 'production', // ✅ only over HTTPS in production
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: isProduction ? 'none' : 'lax', // cross-domain in production
+    secure: isProduction,                     // only HTTPS in production
+    maxAge: 24 * 60 * 60 * 1000,             // 1 day
   });
 
   res.status(201).json({
@@ -41,13 +43,14 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   const token = generateToken(user);
+  const isProduction = process.env.NODE_ENV === 'production';
 
   // Set JWT in cookie
   res.cookie('token', token, {
     httpOnly: true,
-    sameSite: 'lax', // ✅ localhost friendly
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: isProduction ? 'none' : 'lax', // cross-domain in production
+    secure: isProduction,                     // only HTTPS in production
+    maxAge: 24 * 60 * 60 * 1000,             // 1 day
   });
 
   res.status(200).json({
@@ -55,4 +58,20 @@ export const login = asyncHandler(async (req, res) => {
     message: 'Login successful',
     user: { id: user._id, name: user.name, email: user.email, role: user.role },
   });
+});
+
+/**
+ * Logout user/admin
+ */
+export const logout = asyncHandler(async (req, res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.cookie('token', '', {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    expires: new Date(0),
+  });
+
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
